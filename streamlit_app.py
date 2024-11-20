@@ -19,36 +19,6 @@ home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50)
 draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20)
 away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10)
 
-# Define odds and margin targets
-odds_data = {
-    "Home": 2.60,
-    "Draw": 3.25,
-    "Away": 2.80,
-    "Over 2.5": 2.40,
-    "Under 2.5": 1.55,
-}
-margin_targets = {
-    "Match Results": 4.95,
-    "Over/Under": 6.18,
-    "Correct Score": 57.97,
-    "HT/FT": 20.0,
-    "Asian Handicap Margin Target": 5.90,
-    "Over/Under Margin Target": 6.18,
-    "Exact Goals Margin Target": 20.25,
-    "Correct Score Margin": 57.97,
-}
-
-# Function to calculate margin differences
-def calculate_margin_difference(odds, margin_target):
-    return round(margin_target - odds, 2)
-
-# Calculate margin differences and store in a DataFrame
-margin_differences = {
-    bet: calculate_margin_difference(odds, margin_targets["Match Results"] if "2.5" not in bet else margin_targets["Over/Under"])
-    for bet, odds in odds_data.items()
-}
-margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
-
 # Poisson Probability Function
 def poisson_prob(mean, goal):
     return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
@@ -127,10 +97,6 @@ value_bets = calculate_value(home_prob, draw_prob, away_prob, normalized_home, n
 st.write(f"Value (Home Win): {value_bets['Home Win']:.2f}")
 st.write(f"Value (Draw): {value_bets['Draw']:.2f}")
 st.write(f"Value (Away Win): {value_bets['Away Win']:.2f}")
-
-# Display Margin Differences
-st.subheader("Margin Differences for Various Bets")
-st.write(margin_df)
 
 # Machine Learning Integration Example
 st.subheader("Machine Learning Prediction")
