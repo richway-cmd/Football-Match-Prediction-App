@@ -6,8 +6,7 @@ from scipy.stats import poisson
 from sklearn.ensemble import RandomForestRegressor
 
 # Advanced Predictor Dashboard
-st.title("Advanced 🤖 Rabiotic Correct Score Software Match Outcome Predictor")
-st.write('This software Preict a 100℅ Accuracy Correct Score and HT/FT Tip!')
+st.title("Advanced Football Match Outcome Predictor")
 st.markdown("Using Poisson Distribution, Machine Learning, Odds Analysis, and Advanced Metrics")
 
 # Sidebar Inputs
