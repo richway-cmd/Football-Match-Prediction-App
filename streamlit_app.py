@@ -1,177 +1,110 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import altair as alt
 from scipy.stats import poisson
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
 
-# Streamlit Application Title
-st.title("🤖 Advanced Rabiotic Football Outcome Predictor")
+# Application Title and Description
+st.set_page_config(page_title="Advanced Football Predictor", layout="wide")
+st.title("⚽ Advanced Football Match Predictor")
 st.markdown("""
-Predict football match outcomes using advanced metrics like:
-- **Poisson Distribution**
-- **Machine Learning**
-- **Odds Analysis**
-- **Margin Calculations**
+Predict football outcomes using **advanced metrics**:
+- Poisson Distribution
+- Machine Learning
+- Bayesian Updating
+- Advanced Visualizations
 """)
 
-# Sidebar for Input Parameters
+# Sidebar for Inputs
 st.sidebar.header("Input Parameters")
-
-# Match and Odds Input
 home_team = st.sidebar.text_input("Home Team", "Team A")
 away_team = st.sidebar.text_input("Away Team", "Team B")
 goals_home_mean = st.sidebar.number_input("Expected Goals (Home)", min_value=0.1, value=1.2, step=0.1)
 goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1, value=1.1, step=0.1)
+max_goals = st.sidebar.slider("Max Goals to Calculate", min_value=3, max_value=10, value=5)
 
-# Odds Input
-home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50, step=0.01)
+# Odds Inputs
+home_odds = st.sidebar.number_input("Odds: Home Win", value=2.50, step=0.01)
 draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20, step=0.01)
-away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10, step=0.01)
-over_odds = st.sidebar.number_input("Over 2.5 Odds", value=2.40, step=0.01)
-under_odds = st.sidebar.number_input("Under 2.5 Odds", value=1.55, step=0.01)
-
-# Margin Targets
-st.sidebar.subheader("Margin Targets")
-margin_targets = {
-    "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),
-    "Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90, step=0.01),
-    "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
-    "Exact Goals Margin": st.sidebar.number_input("Exact Goals Margin", value=20.25, step=0.01),
-    "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
-    "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
-}
-
-# Select Points for Probabilities and Odds
-selected_points = st.sidebar.multiselect(
-    "Select Points for Probabilities and Odds",
-    options=["Home Win", "Draw", "Away Win", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
-)
+away_odds = st.sidebar.number_input("Odds: Away Win", value=3.10, step=0.01)
 
 # Submit Button
-submit_button = st.sidebar.button("Submit Prediction")
+if st.sidebar.button("Predict Outcomes"):
+    # Poisson Probabilities
+    def poisson_prob(mean, goal):
+        return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
+    
+    # Match Probabilities
+    def calculate_match_probabilities(home_mean, away_mean, max_goals):
+        home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
+        away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
+        match_probs = pd.DataFrame([
+            {"Home Goals": h, "Away Goals": a, "Probability": home_probs[h] * away_probs[a]}
+            for h in range(max_goals + 1) for a in range(max_goals + 1)
+        ])
+        return match_probs
 
-# Reset Button
-reset_button = st.sidebar.button("Reset Input Data")
-
-# Functions
-def calculate_margin_difference(odds, margin_target):
-    """Calculate the margin difference."""
-    return round(margin_target - odds, 2)
-
-def poisson_prob(mean, goal):
-    """Calculate Poisson probability for a given mean and goal."""
-    return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
-
-def calculate_probabilities(home_mean, away_mean, max_goals=5):
-    """Calculate probabilities of all possible scorelines."""
-    home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
-    away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
-    return [
-        (i, j, home_probs[i] * away_probs[j])
-        for i in range(max_goals + 1)
-        for j in range(max_goals + 1)
-    ]
-
-def odds_implied_probability(odds):
-    """Convert odds to implied probability."""
-    return 1 / odds
-
-def normalize_probs(home, draw, away):
-    """Normalize probabilities to sum up to 1."""
-    total = home + draw + away
-    return home / total, draw / total, away / total
-
-# Run prediction when submit button is pressed
-if submit_button:
-    # Calculate Probabilities
-    match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
-    score_probs_df = pd.DataFrame(match_probs, columns=["Home Goals", "Away Goals", "Probability"])
-
-    # Display Probabilities
-    st.subheader("Match Outcome Probabilities")
-    home_prob = odds_implied_probability(home_win_odds)
-    draw_prob = odds_implied_probability(draw_odds)
-    away_prob = odds_implied_probability(away_win_odds)
-    normalized_home, normalized_draw, normalized_away = normalize_probs(home_prob, draw_prob, away_prob)
-
-    if "Home Win" in selected_points:
-        st.metric("Home Win (%)", f"{normalized_home * 100:.2f}")
-    if "Draw" in selected_points:
-        st.metric("Draw (%)", f"{normalized_draw * 100:.2f}")
-    if "Away Win" in selected_points:
-        st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
+    match_probs = calculate_match_probabilities(goals_home_mean, goals_away_mean, max_goals)
+    
+    # Display Match Probabilities as Heatmap
+    st.subheader("Probability Heatmap")
+    heatmap = alt.Chart(match_probs).mark_rect().encode(
+        x=alt.X('Away Goals:O', title='Away Team Goals'),
+        y=alt.Y('Home Goals:O', title='Home Team Goals'),
+        color=alt.Color('Probability:Q', scale=alt.Scale(scheme='blues'), title='Probability'),
+        tooltip=['Home Goals', 'Away Goals', 'Probability']
+    ).properties(
+        width=600,
+        height=400,
+        title="Goal Probabilities Heatmap"
+    )
+    st.altair_chart(heatmap)
 
     # Correct Score Predictions
-    if "Correct Score" in selected_points:
-        st.subheader("Top Correct Score Predictions")
-        top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
-        top_scores["Probability (%)"] = top_scores["Probability"] * 100
-        st.write(top_scores)
+    st.subheader("Top Correct Score Predictions")
+    top_scores = match_probs.sort_values("Probability", ascending=False).head(5)
+    top_scores['Probability (%)'] = (top_scores['Probability'] * 100).round(2)
+    st.table(top_scores)
 
-        # Visualization: Correct Score Probabilities
-        fig, ax = plt.subplots()
-        ax.bar(
-            top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
-            top_scores["Probability (%)"],
-            color="skyblue",
-        )
-        ax.set_title("Top Correct Scores")
-        ax.set_ylabel("Probability (%)")
-        st.pyplot(fig)
-
-    # HT/FT Predictions
-    if "HT/FT" in selected_points:
-        st.subheader("Halftime/Full-time Predictions")
-        # Placeholder for HT/FT prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
-
-    # BTTS Predictions
-    if "BTTS" in selected_points:
-        st.subheader("Both Teams To Score (BTTS)")
-        # Placeholder for BTTS prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
-
-    # Exact Goals Predictions
-    if "Exact Goals" in selected_points:
-        st.subheader("Exact Goals Predictions")
-        # Placeholder for Exact Goals prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
-
-    # Margin Differences
-    st.subheader("Margin Differences")
-    margin_differences = {
-        "Home Win": calculate_margin_difference(home_win_odds, margin_targets["Match Results"]),
-        "Draw": calculate_margin_difference(draw_odds, margin_targets["Match Results"]),
-        "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
-        "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
-        "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
+    # Implied Probabilities
+    def implied_probability(odds):
+        return 1 / odds
+    
+    st.subheader("Implied Probabilities")
+    home_prob = implied_probability(home_odds)
+    draw_prob = implied_probability(draw_odds)
+    away_prob = implied_probability(away_odds)
+    normalized_probs = {
+        "Home Win (%)": (home_prob / (home_prob + draw_prob + away_prob)) * 100,
+        "Draw (%)": (draw_prob / (home_prob + draw_prob + away_prob)) * 100,
+        "Away Win (%)": (away_prob / (home_prob + draw_prob + away_prob)) * 100,
     }
-    margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
-    st.write(margin_df)
+    st.metric("Home Win (%)", f"{normalized_probs['Home Win (%)']:.2f}")
+    st.metric("Draw (%)", f"{normalized_probs['Draw (%)']:.2f}")
+    st.metric("Away Win (%)", f"{normalized_probs['Away Win (%)']:.2f}")
 
-    # Advanced Visualization: Poisson Heatmap
-    st.subheader("Poisson Probability Heatmap")
-    def visualize_poisson_heatmap(home_mean, away_mean, max_goals=5):
-        prob_matrix = np.zeros((max_goals + 1, max_goals + 1))
-        for i in range(max_goals + 1):
-            for j in range(max_goals + 1):
-                prob_matrix[i, j] = poisson.pmf(i, home_mean) * poisson.pmf(j, away_mean)
-        prob_matrix /= prob_matrix.sum()
+    # Bayesian Updating (Advanced)
+    st.subheader("Bayesian Predictions")
+    prior_home = 0.4  # Example prior for home win
+    prior_draw = 0.3  # Example prior for draw
+    prior_away = 0.3  # Example prior for away win
+    likelihood_home = normalized_probs['Home Win (%)'] / 100
+    likelihood_draw = normalized_probs['Draw (%)'] / 100
+    likelihood_away = normalized_probs['Away Win (%)'] / 100
+    posterior_home = prior_home * likelihood_home
+    posterior_draw = prior_draw * likelihood_draw
+    posterior_away = prior_away * likelihood_away
+    total_posterior = posterior_home + posterior_draw + posterior_away
+    st.metric("Posterior Home Win (%)", f"{(posterior_home / total_posterior) * 100:.2f}")
+    st.metric("Posterior Draw (%)", f"{(posterior_draw / total_posterior) * 100:.2f}")
+    st.metric("Posterior Away Win (%)", f"{(posterior_away / total_posterior) * 100:.2f}")
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-        cax = ax.matshow(prob_matrix, cmap="coolwarm")
-        fig.colorbar(cax)
-        ax.set_xticks(range(max_goals + 1))
-        ax.set_yticks(range(max_goals + 1))
-        ax.set_xticklabels(range(max_goals + 1))
-        ax.set_yticklabels(range(max_goals + 1))
-        ax.set_xlabel("Goals Away Team", fontsize=12)
-        ax.set_ylabel("Goals Home Team", fontsize=12)
-        ax.set_title("Poisson Probability Heatmap", fontsize=14)
-        st.pyplot(fig)
-
-    visualize_poisson_heatmap(goals_home_mean, goals_away_mean)
-
-# Reset Input Data when reset button is pressed
-if reset_button:
-    st.experimental_rerun()
+    # Export Data
+    st.download_button(
+        label="Download Predictions as CSV",
+        data=match_probs.to_csv(index=False),
+        file_name="match_predictions.csv",
+        mime="text/csv"
+    )
