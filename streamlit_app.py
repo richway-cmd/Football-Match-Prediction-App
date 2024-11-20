@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
 import streamlit as st
+import tkinter as tk
+from tkinter import ttk
 
 # Streamlit Application Title
 st.title("🤖 Advanced Rabiotic Football Outcome Predictor")
@@ -37,7 +39,6 @@ margin_targets = {
     "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),
     "Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90, step=0.01),
     "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
-    "Exact Goals": st.sidebar.number_input("Exact Goals Margin", value=3.50, step=0.01),
     "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
 }
@@ -56,7 +57,7 @@ def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
 def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)
+    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
 
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
@@ -120,7 +121,6 @@ if submit_button:
         "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
         "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
         "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
-        "Exact Goals": calculate_margin_difference(over_odds, margin_targets["Exact Goals"]),
     }
     margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
     st.write(margin_df)
@@ -143,3 +143,57 @@ if submit_button:
     ax.set_xlabel("Away Goals")
     ax.set_ylabel("Home Goals")
     st.pyplot(fig)
+
+# Data for "Correct Score - Odds"
+correct_score_data = [
+    ["1:0", "2:0", "2:1", "3:0", "3:1", "3:2", "4:0", "4:1", "5:0"],
+    [4.36, 7.50, 9.70, 20, 25, 65, 68, 88, None],
+    ["0:0", "1:1", "2:2", "3:3", "4:4", "5:5", "other"],
+    [5.00, 5.60, 25, None, None, None, None],
+    ["0:1", "0:2", "1:2", "0:3", "1:3", "2:3", "0:4", "1:4", "0:5"],
+    [6.50, 17, 15, 65, 56, 97, None, None, None],
+]
+
+# Data for "Half Time / Full Time - Odds"
+ht_ft_data = [
+    ["1/1", "1/X", "1/2", "X/1", "X/X", "X/2", "2/1", "2/X", "2/2"],
+    [3.06, 18, 78, 4.37, 3.48, 7.30, 48, 18, 6.00],
+]
+
+# Create the main window
+root = tk.Tk()
+root.title("Betting Odds and Probabilities")
+
+# Create frames for each table
+frame1 = tk.Frame(root)
+frame1.pack(pady=10)
+
+frame2 = tk.Frame(root)
+frame2.pack(pady=10)
+
+# Function to create a table
+def create_table(frame, title, data):
+    # Title label
+    title_label = tk.Label(frame, text=title, font=("Arial", 14, "bold"))
+    title_label.pack()
+
+    # Create treeview widget
+    tree = ttk.Treeview(frame, columns=[str(i) for i in range(len(data[0]))], show="headings")
+    tree.pack()
+
+    # Set column headings
+    for i in range(len(data[0])):
+        tree.heading(str(i), text=data[0][i])
+
+    # Insert rows
+    for row in data[1:]:
+        tree.insert("", "end", values=row)
+
+    return tree
+
+# Create tables
+create_table(frame1, "Correct Score Predictions", correct_score_data)
+create_table(frame2, "Half Time / Full Time Odds", ht_ft_data)
+
+# Start the GUI
+root.mainloop()
