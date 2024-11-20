@@ -39,6 +39,7 @@ margin_targets = {
     "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
     "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
+    "Exact Goals": st.sidebar.number_input("Exact Goals Margin", value=50.00, step=0.01)  # New input
 }
 
 # Select Points for Probabilities and Odds
@@ -141,13 +142,3 @@ if submit_button:
     ax.set_xlabel("Away Goals")
     ax.set_ylabel("Home Goals")
     st.pyplot(fig)
-
-# Data for "Correct Score - Odds"
-correct_score_data = [
-    ["1:0", "2:0", "2:1", "3:0", "3:1", "3:2", "4:0", "4:1", "5:0"],
-    [4.36, 7.50, 9.70, 20, 25, 65, 68, 88, None],
-    ["0:0", "1:1", "2:2", "3:3", "4:4", "5:5", "other"],
-    [5.00, 5.60, 25, None, None, None, None],
-    ["0:1", "0:2", "1:2", "0:3", "1:3", "2:3", "0:4", "1:4", "0:5"],
-    [None, None, None, None, None, None, None, None, None]
-]
