@@ -1,24 +1,8 @@
-import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
-from sklearn.ensemble import RandomForestRegressor
-
-# Advanced Predictor Dashboard
-st.title("Advanced 🤖 Rabiotic Correct Score Software Match Outcome Predictor")
-st.write("This software predicts 100% accurate correct scores and HT/FT tips!")
-st.markdown("Using Poisson Distribution, Machine Learning, Odds Analysis, and Advanced Metrics")
-
-# Sidebar Inputs
-st.sidebar.header("Match Details")
-home_team = st.sidebar.text_input("Home Team", "Team A")
-away_team = st.sidebar.text_input("Away Team", "Team B")
-goals_home_mean = st.sidebar.number_input("Expected Goals (Home)", min_value=0.1, value=1.2, step=0.1)
-goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1, value=1.1, step=0.1)
-home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50)
-draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20)
-away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10)
+from sklearn.linear_model import LinearRegression
 
 # Define odds and margin targets
 odds_data = {
@@ -31,117 +15,96 @@ odds_data = {
 margin_targets = {
     "Match Results": 4.95,
     "Over/Under": 6.18,
+    "Correct Score": 57.97,
+    "HT/FT": 20.0,
+    "Asian Handicap Margin Target": 5.90,
+    "Over/Under Margin Target": 6.18,
+    "Exact Goals Margin Target": 20.25,
+    "Correct Score Margin": 57.97,
 }
 
 # Function to calculate margin differences
 def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
-# Calculate margin differences
+# Calculate margin differences and store in a DataFrame
 margin_differences = {
     bet: calculate_margin_difference(odds, margin_targets["Match Results"] if "2.5" not in bet else margin_targets["Over/Under"])
     for bet, odds in odds_data.items()
 }
 margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
 
-# Poisson Probability Function
-def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
+# Visualization of margin differences
+def plot_margin_differences(df):
+    plt.figure(figsize=(10, 6))
+    df['Margin Difference'].plot(kind='bar', color='skyblue', edgecolor='black')
+    plt.title("Margin Differences by Bet Type", fontsize=16)
+    plt.xlabel("Bet Type", fontsize=14)
+    plt.ylabel("Margin Difference", fontsize=14)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.xticks(rotation=45, fontsize=12)
+    plt.tight_layout()
+    plt.show()
 
-# Calculate Goal Probabilities
-def calculate_probabilities(goals_home_mean, goals_away_mean, max_goals=5):
-    home_probs = [poisson_prob(goals_home_mean, g) for g in range(max_goals + 1)]
-    away_probs = [poisson_prob(goals_away_mean, g) for g in range(max_goals + 1)]
-    score_probs = []
-    for i, hp in enumerate(home_probs):
-        for j, ap in enumerate(away_probs):
-            prob = hp * ap
-            score_probs.append((i, j, prob))
-    return score_probs
-
-# Calculate Odds Implied Probabilities
-def odds_implied_probability(odds):
-    return 1 / odds
-
-# Normalize Odds
-def normalize_probs(home, draw, away):
-    total = home + draw + away
-    return home / total, draw / total, away / total
-
-# Machine Learning Predictor
-def train_ml_model(data):
-    df = pd.DataFrame(data)
-    X = df[['Team 1 Attack', 'Team 2 Defense']]
-    y = df['Expected Goals']
-    model = RandomForestRegressor()
-    model.fit(X, y)
-    return model
-
-def predict_expected_goals(model, team1_attack, team2_defense):
-    return model.predict([[team1_attack, team2_defense]])[0]
-
-# Match Probabilities
-match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
-
-# Calculate Implied and Normalized Probabilities
-home_prob = odds_implied_probability(home_win_odds)
-draw_prob = odds_implied_probability(draw_odds)
-away_prob = odds_implied_probability(away_win_odds)
-normalized_home, normalized_draw, normalized_away = normalize_probs(home_prob, draw_prob, away_prob)
-
-# Display Match Outcome Probabilities
-st.subheader("Match Outcome Probabilities")
-st.metric("Home Win (%)", f"{normalized_home * 100:.2f}")
-st.metric("Draw (%)", f"{normalized_draw * 100:.2f}")
-st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
-
-# Display Correct Score Probabilities
-st.subheader("Correct Score Probabilities")
-score_probs = pd.DataFrame(match_probs, columns=["Home Goals", "Away Goals", "Probability"])
-st.write(score_probs.sort_values("Probability", ascending=False).head(10))
-
-# Visualize Probabilities
-fig, ax = plt.subplots()
-top_scores = score_probs.sort_values("Probability", ascending=False).head(5)
-ax.bar(top_scores.apply(lambda x: f"{int(x[0])}-{int(x[1])}", axis=1), top_scores["Probability"], color="skyblue")
-ax.set_title("Top Correct Scores")
-ax.set_ylabel("Probability")
-st.pyplot(fig)
-
-# Display Margin Differences
-st.subheader("Margin Differences for Various Bets")
-st.write(margin_df)
-
-# Machine Learning Integration Example
-st.subheader("Machine Learning Prediction")
-example_data = {
-    "Team 1 Attack": [1.5, 1.3, 1.6],
-    "Team 2 Defense": [1.2, 1.4, 1.1],
-    "Expected Goals": [1.5, 1.4, 1.6],
-}
-ml_model = train_ml_model(example_data)
-predicted_goals = predict_expected_goals(ml_model, 1.5, 1.2)
-st.write(f"Predicted Goals for {home_team} vs {away_team}: {predicted_goals:.2f}")
-
-# Advanced Visualization
-st.subheader("Poisson Probability Heatmap")
-def visualize_poisson_heatmap(goals_home_mean, goals_away_mean, max_goals=5):
+# Function to calculate and plot Poisson probabilities
+def calculate_poisson_distribution(goals_team1, goals_team2, max_goals=5):
     prob_matrix = np.zeros((max_goals + 1, max_goals + 1))
     for i in range(max_goals + 1):
         for j in range(max_goals + 1):
-            prob_matrix[i, j] = poisson.pmf(i, goals_home_mean) * poisson.pmf(j, goals_away_mean)
-    prob_matrix /= prob_matrix.sum()
+            prob_matrix[i, j] = poisson.pmf(i, goals_team1) * poisson.pmf(j, goals_team2)
+    prob_matrix /= prob_matrix.sum()  # Normalize
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    cax = ax.matshow(prob_matrix, cmap="coolwarm")
-    fig.colorbar(cax)
-    ax.set_xticks(range(max_goals + 1))
-    ax.set_yticks(range(max_goals + 1))
-    ax.set_xticklabels(range(max_goals + 1))
-    ax.set_yticklabels(range(max_goals + 1))
-    ax.set_xlabel("Goals Away Team", fontsize=12)
-    ax.set_ylabel("Goals Home Team", fontsize=12)
-    ax.set_title("Poisson Probability Heatmap", fontsize=14)
-    st.pyplot(fig)
+    # Plot probability matrix
+    plt.figure(figsize=(10, 6))
+    plt.imshow(prob_matrix, cmap="coolwarm", extent=[0, max_goals, 0, max_goals])
+    plt.title(f"Poisson Probability Distribution\n(Goals Team 1: {goals_team1}, Team 2: {goals_team2})", fontsize=14)
+    plt.colorbar(label="Probability")
+    plt.xlabel("Goals Team 2", fontsize=12)
+    plt.ylabel("Goals Team 1", fontsize=12)
+    plt.xticks(range(max_goals + 1))
+    plt.yticks(range(max_goals + 1))
+    plt.show()
 
-visualize_poisson_heatmap(goals_home_mean, goals_away_mean)
+    return prob_matrix
+
+# Feature Engineering and Prediction with Linear Regression
+def predict_expected_goals(data):
+    """
+    Use historical data to predict goals.
+    Example data format:
+    data = {'Team 1 Attack': [1.5, ...], 'Team 2 Defense': [1.2, ...], 'Expected Goals': [1.6, ...]}
+    """
+    df = pd.DataFrame(data)
+    X = df[['Team 1 Attack', 'Team 2 Defense']]
+    y = df['Expected Goals']
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Predict next match goals
+    new_match = np.array([[1.5, 1.2]])
+    predicted_goals = model.predict(new_match)
+    return predicted_goals[0]
+
+# Main function to integrate all components
+def main():
+    # Example data
+    data = {
+        "Team 1 Attack": [1.5, 1.3, 1.6],
+        "Team 2 Defense": [1.2, 1.4, 1.1],
+        "Expected Goals": [1.5, 1.4, 1.6],
+    }
+    predicted_goals = predict_expected_goals(data)
+    print(f"Predicted Goals for Next Match: {predicted_goals:.2f}")
+    
+    # Calculate Poisson distribution
+    prob_matrix = calculate_poisson_distribution(1.5, 1.2)
+
+    # Display margin differences
+    print("\nMargin Differences:")
+    print(margin_df)
+
+    # Plot margin differences
+    plot_margin_differences(margin_df)
+
+if __name__ == "__main__":
+    main()
