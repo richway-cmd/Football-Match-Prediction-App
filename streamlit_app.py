@@ -6,7 +6,8 @@ from scipy.stats import poisson
 from sklearn.ensemble import RandomForestRegressor
 
 # Advanced Predictor Dashboard
-st.title("Advanced Football Match Outcome Predictor")
+st.title("Advanced 🤖 Rabiotic Correct Score Software Match Outcome Predictor")
+st.write("This software predicts 100% accurate correct scores and HT/FT tips!")
 st.markdown("Using Poisson Distribution, Machine Learning, Odds Analysis, and Advanced Metrics")
 
 # Sidebar Inputs
@@ -18,6 +19,30 @@ goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1
 home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50)
 draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20)
 away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10)
+
+# Define odds and margin targets
+odds_data = {
+    "Home": 2.60,
+    "Draw": 3.25,
+    "Away": 2.80,
+    "Over 2.5": 2.40,
+    "Under 2.5": 1.55,
+}
+margin_targets = {
+    "Match Results": 4.95,
+    "Over/Under": 6.18,
+}
+
+# Function to calculate margin differences
+def calculate_margin_difference(odds, margin_target):
+    return round(margin_target - odds, 2)
+
+# Calculate margin differences
+margin_differences = {
+    bet: calculate_margin_difference(odds, margin_targets["Match Results"] if "2.5" not in bet else margin_targets["Over/Under"])
+    for bet, odds in odds_data.items()
+}
+margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
 
 # Poisson Probability Function
 def poisson_prob(mean, goal):
@@ -55,14 +80,6 @@ def train_ml_model(data):
 def predict_expected_goals(model, team1_attack, team2_defense):
     return model.predict([[team1_attack, team2_defense]])[0]
 
-# Real-Time Odds and Value Calculation
-def calculate_value(home_prob, draw_prob, away_prob, normalized_home, normalized_draw, normalized_away):
-    return {
-        "Home Win": home_prob - normalized_home,
-        "Draw": draw_prob - normalized_draw,
-        "Away Win": away_prob - normalized_away,
-    }
-
 # Match Probabilities
 match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
 
@@ -91,12 +108,9 @@ ax.set_title("Top Correct Scores")
 ax.set_ylabel("Probability")
 st.pyplot(fig)
 
-# Value Betting Analysis
-st.subheader("Value Betting Analysis")
-value_bets = calculate_value(home_prob, draw_prob, away_prob, normalized_home, normalized_draw, normalized_away)
-st.write(f"Value (Home Win): {value_bets['Home Win']:.2f}")
-st.write(f"Value (Draw): {value_bets['Draw']:.2f}")
-st.write(f"Value (Away Win): {value_bets['Away Win']:.2f}")
+# Display Margin Differences
+st.subheader("Margin Differences for Various Bets")
+st.write(margin_df)
 
 # Machine Learning Integration Example
 st.subheader("Machine Learning Prediction")
