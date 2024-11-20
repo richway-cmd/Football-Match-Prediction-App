@@ -1,29 +1,45 @@
+import streamlit as st
+import pandas as pd
 import numpy as np
-from math import factorial  # Import factorial from the math module
+from scipy.stats import poisson
 
-# Function to calculate Poisson probability
-def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)
+# App Title
+st.title("🤖 Rabiotic Correct Score Prediction App")
+st.subheader("Predict Football Match Outcomes with Accuracy")
 
-# Function to calculate match probabilities
-def calculate_probabilities(goals_home_mean, goals_away_mean, max_goals=5):
-    home_probs = [poisson_prob(goals_home_mean, g) for g in range(max_goals + 1)]
-    away_probs = [poisson_prob(goals_away_mean, g) for g in range(max_goals + 1)]
+# Sidebar for Inputs
+st.sidebar.header("Match Details")
+team_a = st.sidebar.text_input("Enter Team A Name", "Team A")
+team_b = st.sidebar.text_input("Enter Team B Name", "Team B")
+team_a_goals = st.sidebar.number_input(f"Average Goals Scored by {team_a}", min_value=0.0, step=0.1, value=1.2)
+team_b_goals = st.sidebar.number_input(f"Average Goals Scored by {team_b}", min_value=0.0, step=0.1, value=1.5)
+team_a_concede = st.sidebar.number_input(f"Average Goals Conceded by {team_a}", min_value=0.0, step=0.1, value=1.3)
+team_b_concede = st.sidebar.number_input(f"Average Goals Conceded by {team_b}", min_value=0.0, step=0.1, value=1.4)
 
-    match_probs = np.zeros((max_goals + 1, max_goals + 1))
-    for i, home_prob in enumerate(home_probs):
-        for j, away_prob in enumerate(away_probs):
-            match_probs[i, j] = home_prob * away_prob
+# Poisson Function to Predict Scores
+def predict_score(avg_home, avg_away, max_goals=5):
+    home_goals = np.arange(0, max_goals + 1)
+    away_goals = np.arange(0, max_goals + 1)
+    probabilities = np.zeros((len(home_goals), len(away_goals)))
 
-    return match_probs
+    for i, h in enumerate(home_goals):
+        for j, a in enumerate(away_goals):
+            probabilities[i, j] = poisson.pmf(h, avg_home) * poisson.pmf(a, avg_away)
 
-# Example inputs
-goals_home_mean = 1.5
-goals_away_mean = 1.2
+    return pd.DataFrame(probabilities, index=home_goals, columns=away_goals)
 
-# Calculate match probabilities
-match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
+# Calculate Prediction
+st.markdown(f"### Predicted Outcomes for {team_a} vs {team_b}")
+avg_home = (team_a_goals + team_b_concede) / 2
+avg_away = (team_b_goals + team_a_concede) / 2
+score_matrix = predict_score(avg_home, avg_away)
 
-# Print match probabilities
-print("Match probabilities matrix:")
-print(match_probs)
+# Display Prediction
+st.write("Probability Matrix:")
+st.dataframe(score_matrix.style.format("{:.2%}"))
+
+# Highlight Most Likely Scores
+st.markdown("### Most Likely Scores")
+most_likely = score_matrix.unstack().sort_values(ascending=False).head(5)
+for (home, away), prob in most_likely.items():
+    st.write(f"{home}-{away}: {prob:.2%}")
