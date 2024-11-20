@@ -1,11 +1,9 @@
 import numpy as np
-from math import factorial  # Correct import for factorial
+from math import factorial
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
 import streamlit as st
-import tkinter as tk
-from tkinter import ttk
 
 # Streamlit Application Title
 st.title("🤖 Advanced Rabiotic Football Outcome Predictor")
@@ -57,7 +55,7 @@ def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
 def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
+    return (np.exp(-mean) * mean**goal) / factorial(goal)
 
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
@@ -151,49 +149,5 @@ correct_score_data = [
     ["0:0", "1:1", "2:2", "3:3", "4:4", "5:5", "other"],
     [5.00, 5.60, 25, None, None, None, None],
     ["0:1", "0:2", "1:2", "0:3", "1:3", "2:3", "0:4", "1:4", "0:5"],
-    [6.50, 17, 15, 65, 56, 97, None, None, None],
+    [None, None, None, None, None, None, None, None, None]
 ]
-
-# Data for "Half Time / Full Time - Odds"
-ht_ft_data = [
-    ["1/1", "1/X", "1/2", "X/1", "X/X", "X/2", "2/1", "2/X", "2/2"],
-    [3.06, 18, 78, 4.37, 3.48, 7.30, 48, 18, 6.00],
-]
-
-# Create the main window
-root = tk.Tk()
-root.title("Betting Odds and Probabilities")
-
-# Create frames for each table
-frame1 = tk.Frame(root)
-frame1.pack(pady=10)
-
-frame2 = tk.Frame(root)
-frame2.pack(pady=10)
-
-# Function to create a table
-def create_table(frame, title, data):
-    # Title label
-    title_label = tk.Label(frame, text=title, font=("Arial", 14, "bold"))
-    title_label.pack()
-
-    # Create treeview widget
-    tree = ttk.Treeview(frame, columns=[str(i) for i in range(len(data[0]))], show="headings")
-    tree.pack()
-
-    # Set column headings
-    for i in range(len(data[0])):
-        tree.heading(str(i), text=data[0][i])
-
-    # Insert rows
-    for row in data[1:]:
-        tree.insert("", "end", values=row)
-
-    return tree
-
-# Create tables
-create_table(frame1, "Correct Score Predictions", correct_score_data)
-create_table(frame2, "Half Time / Full Time Odds", ht_ft_data)
-
-# Start the GUI
-root.mainloop()
