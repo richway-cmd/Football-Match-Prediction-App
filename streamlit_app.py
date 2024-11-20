@@ -1,5 +1,5 @@
 import numpy as np
-from math import factorial
+from math import factorial  # Correct import for factorial
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
@@ -39,7 +39,6 @@ margin_targets = {
     "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
     "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
-    "Exact Goals": st.sidebar.number_input("Exact Goals Margin", value=50.00, step=0.01)  # New input
 }
 
 # Select Points for Probabilities and Odds
@@ -56,7 +55,7 @@ def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
 def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)
+    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
 
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
