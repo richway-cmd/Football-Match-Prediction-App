@@ -33,11 +33,8 @@ under_odds = st.sidebar.number_input("Under 2.5 Odds", value=1.55, step=0.01)
 # Margin Targets
 st.sidebar.subheader("Margin Targets")
 margin_targets = {
-    "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),
-    "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
-    "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
+    "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),"Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90,"Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),"Exact Goals Margin": st.sidebar.number_input(Exact Goals Margin",value=20.25, step=0.01,"Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
-    "Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90, step=0.01),
 }
 
 # Functions
