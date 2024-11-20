@@ -44,7 +44,7 @@ margin_targets = {
 # Select Points for Probabilities and Odds
 selected_points = st.sidebar.multiselect(
     "Select Points for Probabilities and Odds",
-    options=["Home Win", "Draw", "Away Win", "Over 2.5", "Under 2.5"]
+    options=["Home Win", "Draw", "Away Win", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
 )
 
 # Submit Button
@@ -102,21 +102,40 @@ if submit_button:
         st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
 
     # Correct Score Predictions
-    st.subheader("Top Correct Score Predictions")
-    top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
-    top_scores["Probability (%)"] = top_scores["Probability"] * 100
-    st.write(top_scores)
+    if "Correct Score" in selected_points:
+        st.subheader("Top Correct Score Predictions")
+        top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
+        top_scores["Probability (%)"] = top_scores["Probability"] * 100
+        st.write(top_scores)
 
-    # Visualization: Correct Score Probabilities
-    fig, ax = plt.subplots()
-    ax.bar(
-        top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
-        top_scores["Probability (%)"],
-        color="skyblue",
-    )
-    ax.set_title("Top Correct Scores")
-    ax.set_ylabel("Probability (%)")
-    st.pyplot(fig)
+        # Visualization: Correct Score Probabilities
+        fig, ax = plt.subplots()
+        ax.bar(
+            top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
+            top_scores["Probability (%)"],
+            color="skyblue",
+        )
+        ax.set_title("Top Correct Scores")
+        ax.set_ylabel("Probability (%)")
+        st.pyplot(fig)
+
+    # HT/FT Predictions
+    if "HT/FT" in selected_points:
+        st.subheader("Halftime/Full-time Predictions")
+        # Placeholder for HT/FT prediction logic (similar to Correct Score)
+        # For simplicity, you can add custom logic to handle this.
+
+    # BTTS Predictions
+    if "BTTS" in selected_points:
+        st.subheader("Both Teams To Score (BTTS)")
+        # Placeholder for BTTS prediction logic (similar to Correct Score)
+        # For simplicity, you can add custom logic to handle this.
+
+    # Exact Goals Predictions
+    if "Exact Goals" in selected_points:
+        st.subheader("Exact Goals Predictions")
+        # Placeholder for Exact Goals prediction logic (similar to Correct Score)
+        # For simplicity, you can add custom logic to handle this.
 
     # Margin Differences
     st.subheader("Margin Differences")
