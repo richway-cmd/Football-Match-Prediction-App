@@ -1,3 +1,6 @@
+# Install required dependencies: 
+# streamlit==1.40.1, numpy==2.1.3, pandas==2.2.3, matplotlib==3.9.2
+
 import streamlit as st
 import numpy as np
 import pandas as pd
