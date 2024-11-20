@@ -24,11 +24,40 @@ goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1
 home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50)
 draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20)
 away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10)
+odds_data = {
+    "Home Win": home_win_odds,
+    "Draw": draw_odds,
+    "Away Win": away_win_odds,
+    "Over 2.5": 2.40,
+    "Under 2.5": 1.55,
+}
+margin_targets = {
+    "Match Results": 4.95,
+    "Over/Under": 6.18,
+    "Correct Score": 57.97,
+    "HT/FT": 20.0,
+    "Asian Handicap Margin Target": 5.90,
+    "Over/Under Margin Target": 6.18,
+    "Exact Goals Margin Target": 20.25,
+    "Correct Score Margin": 57.97,
+}
 
-# Helper Functions
+# Function to calculate margin differences
+def calculate_margin_difference(odds, margin_target):
+    return round(margin_target - odds, 2)
+
+# Calculate margin differences and store in a DataFrame
+margin_differences = {
+    bet: calculate_margin_difference(odds, margin_targets["Match Results"] if "2.5" not in bet else margin_targets["Over/Under"])
+    for bet, odds in odds_data.items()
+}
+margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
+
+# Poisson Probability Function
 def poisson_prob(mean, goal):
     return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
 
+# Calculate Goal Probabilities
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
     away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
@@ -39,9 +68,11 @@ def calculate_probabilities(home_mean, away_mean, max_goals=5):
     ]
     return score_probs
 
+# Odds Implied Probabilities
 def odds_implied_probability(odds):
     return 1 / odds
 
+# Normalize Odds
 def normalize_probs(home, draw, away):
     total = home + draw + away
     return home / total, draw / total, away / total
@@ -89,6 +120,10 @@ st.write(f"Value (Home Win): {value_bets['Home Win']:.2f}")
 st.write(f"Value (Draw): {value_bets['Draw']:.2f}")
 st.write(f"Value (Away Win): {value_bets['Away Win']:.2f}")
 
+# Display Margin Differences
+st.subheader("Margin Differences for Various Bets")
+st.write(margin_df)
+
 # Advanced Visualization - Poisson Heatmap
 st.subheader("Poisson Probability Heatmap")
 def visualize_poisson_heatmap(home_mean, away_mean, max_goals=5):
@@ -99,15 +134,15 @@ def visualize_poisson_heatmap(home_mean, away_mean, max_goals=5):
     prob_matrix /= prob_matrix.sum()
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    cax = ax.matshow(prob_matrix, cmap="coolwarm", alpha=0.9)
+    cax = ax.matshow(prob_matrix, cmap="coolwarm")
     fig.colorbar(cax)
     ax.set_xticks(range(max_goals + 1))
     ax.set_yticks(range(max_goals + 1))
     ax.set_xticklabels(range(max_goals + 1))
     ax.set_yticklabels(range(max_goals + 1))
-    ax.set_xlabel("Away Goals")
-    ax.set_ylabel("Home Goals")
-    ax.set_title("Poisson Probability Heatmap")
+    ax.set_xlabel("Goals Away Team", fontsize=12)
+    ax.set_ylabel("Goals Home Team", fontsize=12)
+    ax.set_title("Poisson Probability Heatmap", fontsize=14)
     st.pyplot(fig)
 
 visualize_poisson_heatmap(goals_home_mean, goals_away_mean)
