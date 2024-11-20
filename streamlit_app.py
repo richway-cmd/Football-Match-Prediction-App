@@ -1,8 +1,9 @@
-import streamlit as st
 import numpy as np
+from math import factorial  # Correct import for factorial
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import poisson
+import streamlit as st
 
 # Streamlit Application Title
 st.title("🤖 Advanced Rabiotic Football Outcome Predictor")
@@ -54,7 +55,7 @@ def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
 def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
+    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
 
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
