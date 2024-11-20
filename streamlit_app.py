@@ -41,48 +41,36 @@ margin_targets = {
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
 }
 
-# Select Points for Probabilities and Odds
-selected_points = st.sidebar.multiselect(
-    "Select Points for Probabilities and Odds",
-    options=["Home Win", "Draw", "Away Win", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
-)
-
 # Submit Button
-submit_button = st.sidebar.button("Submit Prediction")
+if st.sidebar.button('Submit'):
+    # Functions for calculations and display
+    def calculate_margin_difference(odds, margin_target):
+        """Calculate the margin difference."""
+        return round(margin_target - odds, 2)
 
-# Reset Button
-reset_button = st.sidebar.button("Reset Input Data")
+    def poisson_prob(mean, goal):
+        """Calculate Poisson probability for a given mean and goal."""
+        return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
 
-# Functions
-def calculate_margin_difference(odds, margin_target):
-    """Calculate the margin difference."""
-    return round(margin_target - odds, 2)
+    def calculate_probabilities(home_mean, away_mean, max_goals=5):
+        """Calculate probabilities of all possible scorelines."""
+        home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
+        away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
+        return [
+            (i, j, home_probs[i] * away_probs[j])
+            for i in range(max_goals + 1)
+            for j in range(max_goals + 1)
+        ]
 
-def poisson_prob(mean, goal):
-    """Calculate Poisson probability for a given mean and goal."""
-    return (np.exp(-mean) * mean**goal) / np.math.factorial(goal)
+    def odds_implied_probability(odds):
+        """Convert odds to implied probability."""
+        return 1 / odds
 
-def calculate_probabilities(home_mean, away_mean, max_goals=5):
-    """Calculate probabilities of all possible scorelines."""
-    home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
-    away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
-    return [
-        (i, j, home_probs[i] * away_probs[j])
-        for i in range(max_goals + 1)
-        for j in range(max_goals + 1)
-    ]
+    def normalize_probs(home, draw, away):
+        """Normalize probabilities to sum up to 1."""
+        total = home + draw + away
+        return home / total, draw / total, away / total
 
-def odds_implied_probability(odds):
-    """Convert odds to implied probability."""
-    return 1 / odds
-
-def normalize_probs(home, draw, away):
-    """Normalize probabilities to sum up to 1."""
-    total = home + draw + away
-    return home / total, draw / total, away / total
-
-# Run prediction when submit button is pressed
-if submit_button:
     # Calculate Probabilities
     match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
     score_probs_df = pd.DataFrame(match_probs, columns=["Home Goals", "Away Goals", "Probability"])
@@ -94,48 +82,26 @@ if submit_button:
     away_prob = odds_implied_probability(away_win_odds)
     normalized_home, normalized_draw, normalized_away = normalize_probs(home_prob, draw_prob, away_prob)
 
-    if "Home Win" in selected_points:
-        st.metric("Home Win (%)", f"{normalized_home * 100:.2f}")
-    if "Draw" in selected_points:
-        st.metric("Draw (%)", f"{normalized_draw * 100:.2f}")
-    if "Away Win" in selected_points:
-        st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
+    st.metric("Home Win (%)", f"{normalized_home * 100:.2f}")
+    st.metric("Draw (%)", f"{normalized_draw * 100:.2f}")
+    st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
 
     # Correct Score Predictions
-    if "Correct Score" in selected_points:
-        st.subheader("Top Correct Score Predictions")
-        top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
-        top_scores["Probability (%)"] = top_scores["Probability"] * 100
-        st.write(top_scores)
+    st.subheader("Top Correct Score Predictions")
+    top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
+    top_scores["Probability (%)"] = top_scores["Probability"] * 100
+    st.write(top_scores)
 
-        # Visualization: Correct Score Probabilities
-        fig, ax = plt.subplots()
-        ax.bar(
-            top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
-            top_scores["Probability (%)"],
-            color="skyblue",
-        )
-        ax.set_title("Top Correct Scores")
-        ax.set_ylabel("Probability (%)")
-        st.pyplot(fig)
-
-    # HT/FT Predictions
-    if "HT/FT" in selected_points:
-        st.subheader("Halftime/Full-time Predictions")
-        # Placeholder for HT/FT prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
-
-    # BTTS Predictions
-    if "BTTS" in selected_points:
-        st.subheader("Both Teams To Score (BTTS)")
-        # Placeholder for BTTS prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
-
-    # Exact Goals Predictions
-    if "Exact Goals" in selected_points:
-        st.subheader("Exact Goals Predictions")
-        # Placeholder for Exact Goals prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
+    # Visualization: Correct Score Probabilities
+    fig, ax = plt.subplots()
+    ax.bar(
+        top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
+        top_scores["Probability (%)"],
+        color="skyblue",
+    )
+    ax.set_title("Top Correct Scores")
+    ax.set_ylabel("Probability (%)")
+    st.pyplot(fig)
 
     # Margin Differences
     st.subheader("Margin Differences")
@@ -172,6 +138,6 @@ if submit_button:
 
     visualize_poisson_heatmap(goals_home_mean, goals_away_mean)
 
-# Reset Input Data when reset button is pressed
-if reset_button:
+# Reset Button
+if st.sidebar.button('Reset'):
     st.experimental_rerun()
