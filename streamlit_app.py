@@ -37,6 +37,7 @@ margin_targets = {
     "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),
     "Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90, step=0.01),
     "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
+    "Exact Goals": st.sidebar.number_input("Exact Goals Margin", value=3.50, step=0.01),
     "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
     "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
 }
@@ -55,7 +56,7 @@ def calculate_margin_difference(odds, margin_target):
     return round(margin_target - odds, 2)
 
 def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
+    return (np.exp(-mean) * mean**goal) / factorial(goal)
 
 def calculate_probabilities(home_mean, away_mean, max_goals=5):
     home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
@@ -119,6 +120,7 @@ if submit_button:
         "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
         "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
         "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
+        "Exact Goals": calculate_margin_difference(over_odds, margin_targets["Exact Goals"]),
     }
     margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
     st.write(margin_df)
