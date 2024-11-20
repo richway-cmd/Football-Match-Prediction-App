@@ -123,19 +123,16 @@ if submit_button:
     if "HT/FT" in selected_points:
         st.subheader("Halftime/Full-time Predictions")
         # Placeholder for HT/FT prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
 
     # BTTS Predictions
     if "BTTS" in selected_points:
         st.subheader("Both Teams To Score (BTTS)")
-        # Placeholder for BTTS prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
+        # Placeholder for BTTS prediction logic
 
     # Exact Goals Predictions
     if "Exact Goals" in selected_points:
         st.subheader("Exact Goals Predictions")
-        # Placeholder for Exact Goals prediction logic (similar to Correct Score)
-        # For simplicity, you can add custom logic to handle this.
+        # Placeholder for Exact Goals prediction logic
 
     # Margin Differences
     st.subheader("Margin Differences")
