@@ -28,6 +28,8 @@ goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1
 home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50, step=0.01)
 draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20, step=0.01)
 away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10, step=0.01)
+over_odds = st.sidebar.number_input("Over 1.5 Odds", value=2.40, step=0.01)
+under_odds = st.sidebar.number_input("Under 1.5 Odds", value=1.55, step=0.01)
 over_odds = st.sidebar.number_input("Over 2.5 Odds", value=2.40, step=0.01)
 under_odds = st.sidebar.number_input("Under 2.5 Odds", value=1.55, step=0.01)
 
@@ -118,6 +120,8 @@ if submit_button:
         "Home Win": calculate_margin_difference(home_win_odds, margin_targets["Match Results"]),
         "Draw": calculate_margin_difference(draw_odds, margin_targets["Match Results"]),
         "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
+        "Over 1.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
+        "Under 1.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
         "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
         "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
     }
