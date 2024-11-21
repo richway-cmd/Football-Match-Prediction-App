@@ -120,6 +120,8 @@ if submit_button:
         "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
         "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
         "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
+        "Over 1.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
+        "Under 1.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
     }
     margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
     st.write(margin_df)
