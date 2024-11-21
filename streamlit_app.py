@@ -47,7 +47,7 @@ margin_targets = {
 # Select Points for Probabilities and Odds
 selected_points = st.sidebar.multiselect(
     "Select Points for Probabilities and Odds",
-    options=["Home Win", "Draw", "Away Win", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
+    options=["Home Win", "Draw", "Away Win", "Over 1.5", "Under 1.5", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
 )
 
 # Submit Button
