@@ -4,65 +4,73 @@ import pandas as pd
 from scipy.stats import poisson
 
 # Sidebar inputs
-st.sidebar.header("Input Parameters")
-team1_attack = st.sidebar.number_input("Team 1 Attack Strength (Home Avg)", min_value=0.0, value=1.5, step=0.1)
-team1_defense = st.sidebar.number_input("Team 1 Defense Strength (Home Avg)", min_value=0.0, value=1.0, step=0.1)
-team2_attack = st.sidebar.number_input("Team 2 Attack Strength (Away Avg)", min_value=0.0, value=1.2, step=0.1)
-team2_defense = st.sidebar.number_input("Team 2 Defense Strength (Away Avg)", min_value=0.0, value=1.1, step=0.1)
-margin = st.sidebar.slider("Margin % (Odds Adjustment)", 0, 100, 10)
+st.sidebar.header("Match Parameters")
+team1_attack = st.sidebar.number_input("Team 1 Attack (Home Avg)", min_value=0.0, value=1.5, step=0.1)
+team1_defense = st.sidebar.number_input("Team 1 Defense (Home Avg)", min_value=0.0, value=1.0, step=0.1)
+team2_attack = st.sidebar.number_input("Team 2 Attack (Away Avg)", min_value=0.0, value=1.2, step=0.1)
+team2_defense = st.sidebar.number_input("Team 2 Defense (Away Avg)", min_value=0.0, value=1.1, step=0.1)
+
+margin = st.sidebar.slider("Margin %", 0, 100, 10)
+max_goals = st.sidebar.number_input("Max Goals to Display", min_value=1, value=5, step=1)
 
 # Calculate team goal expectations
 team1_goals = (team1_attack + team2_defense) / 2
 team2_goals = (team2_attack + team1_defense) / 2
 
-# Header
-st.title("Football Match Odds & Probabilities Calculator")
-st.subheader("Match Parameters and Goal Expectations")
-st.write(f"Team 1 Expected Goals: **{team1_goals:.2f}**")
-st.write(f"Team 2 Expected Goals: **{team2_goals:.2f}**")
+# Main app layout
+st.title("Odds and Probabilities Calculator")
+st.subheader("Team Goal Expectations")
+st.write(f"Expected Goals for Team 1: {team1_goals:.2f}")
+st.write(f"Expected Goals for Team 2: {team2_goals:.2f}")
 
 # Correct Score Probabilities
-st.header("Correct Score Odds and Probabilities")
-
-max_goals = st.number_input("Max Goals to Display", min_value=1, value=5, step=1)
+st.header("Correct Score Probabilities")
 scores_matrix = np.zeros((max_goals + 1, max_goals + 1))
-
-# Populate scores matrix with probabilities
+odds_matrix = np.zeros((max_goals + 1, max_goals + 1))
 for i in range(max_goals + 1):
     for j in range(max_goals + 1):
-        scores_matrix[i, j] = poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals)
+        prob = poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals)
+        scores_matrix[i, j] = prob
+        odds_matrix[i, j] = (1 / prob) * (1 + margin / 100) if prob > 0 else 0
 
-# Display probabilities as a table
-score_labels = [f"{i}:{j}" for i in range(max_goals + 1) for j in range(max_goals + 1)]
-score_probs = [scores_matrix[i, j] for i in range(max_goals + 1) for j in range(max_goals + 1)]
+# Display probability table
+st.subheader("Probability Table (Raw)")
+prob_df = pd.DataFrame(
+    scores_matrix,
+    columns=[f"Team 2 {j} Goals" for j in range(max_goals + 1)],
+    index=[f"Team 1 {i} Goals" for i in range(max_goals + 1)],
+)
+st.table(prob_df)
 
-# Create a DataFrame for better visualization
-scores_df = pd.DataFrame({
-    "Score": score_labels,
-    "Probability": score_probs
-}).sort_values(by="Probability", ascending=False).reset_index(drop=True)
+# Display odds table
+st.subheader("Odds Table (With Margin)")
+odds_df = pd.DataFrame(
+    odds_matrix,
+    columns=[f"Team 2 {j} Goals" for j in range(max_goals + 1)],
+    index=[f"Team 1 {i} Goals" for i in range(max_goals + 1)],
+)
+st.table(odds_df)
 
-st.subheader("Top Score Probabilities")
-st.table(scores_df.head(10))
-
-# Correct Score Odds
-st.subheader("Correct Score Odds")
-scores_df["Odds"] = (1 / scores_df["Probability"]) * (1 + margin / 100)
-st.table(scores_df.head(10)[["Score", "Odds"]])
-
-# Over/Under Total Goals
+# Over/Under Totals
 st.header("Over/Under Totals")
-total_goals = np.arange(0, 2 * max_goals + 1)
-over_under_probs = [np.sum(
-    [poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals) for i in range(k + 1) for j in range(k + 1)]
-) for k in total_goals]
+total_goals_prob = [
+    sum(
+        poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals)
+        for i in range(max_goals + 1)
+        for j in range(max_goals + 1)
+        if i + j == k
+    )
+    for k in range(2 * max_goals + 1)
+]
+total_goals_df = pd.DataFrame({
+    "Total Goals": list(range(2 * max_goals + 1)),
+    "Probability": total_goals_prob,
+})
+st.bar_chart(data=total_goals_df.set_index("Total Goals"), width=700, height=400)
 
-# Visualize cumulative probabilities for total goals
-st.line_chart(pd.DataFrame({
-    "Total Goals": total_goals,
-    "Cumulative Probability": over_under_probs
-}).set_index("Total Goals"), use_container_width=True)
+st.subheader("Cumulative Probability")
+cumulative_prob = np.cumsum(total_goals_prob)
+total_goals_df["Cumulative Probability"] = cumulative_prob
+st.line_chart(data=total_goals_df.set_index("Total Goals")[["Cumulative Probability"]])
 
-# Summary
-st.header("Summary")
-st.write("This app provides dynamic calculations for match probabilities, correct score odds, and over/under totals based on team attack and defense strengths. Adjust the inputs and explore the results!")
+st.write("Explore different match outcomes using the inputs in the sidebar.")
