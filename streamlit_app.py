@@ -1,203 +1,68 @@
 import streamlit as st
+import numpy as np
+import pandas as pd
+from scipy.stats import poisson
 
-def apply_custom_css():
-    css = """
-    @charset "UTF-8";
+# Sidebar inputs
+st.sidebar.header("Input Parameters")
+team1_attack = st.sidebar.number_input("Team 1 Attack Strength (Home Avg)", min_value=0.0, value=1.5, step=0.1)
+team1_defense = st.sidebar.number_input("Team 1 Defense Strength (Home Avg)", min_value=0.0, value=1.0, step=0.1)
+team2_attack = st.sidebar.number_input("Team 2 Attack Strength (Away Avg)", min_value=0.0, value=1.2, step=0.1)
+team2_defense = st.sidebar.number_input("Team 2 Defense Strength (Away Avg)", min_value=0.0, value=1.1, step=0.1)
+margin = st.sidebar.slider("Margin % (Odds Adjustment)", 0, 100, 10)
 
-    .Mob_V {
-        visibility: hidden;
-    }
+# Calculate team goal expectations
+team1_goals = (team1_attack + team2_defense) / 2
+team2_goals = (team2_attack + team1_defense) / 2
 
-    .cl_1 {
-        color: #acc1e6;
-    }
+# Header
+st.title("Football Match Odds & Probabilities Calculator")
+st.subheader("Match Parameters and Goal Expectations")
+st.write(f"Team 1 Expected Goals: **{team1_goals:.2f}**")
+st.write(f"Team 2 Expected Goals: **{team2_goals:.2f}**")
 
-    .cl_w {
-        color: green;
-    }
+# Correct Score Probabilities
+st.header("Correct Score Odds and Probabilities")
 
-    .cl_d {
-        color: blue;
-    }
+max_goals = st.number_input("Max Goals to Display", min_value=1, value=5, step=1)
+scores_matrix = np.zeros((max_goals + 1, max_goals + 1))
 
-    .cl_l {
-        color: red;
-    }
+# Populate scores matrix with probabilities
+for i in range(max_goals + 1):
+    for j in range(max_goals + 1):
+        scores_matrix[i, j] = poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals)
 
-    .cl_g {
-        color: silver;
-        color: #9ba6b1;
-    }
+# Display probabilities as a table
+score_labels = [f"{i}:{j}" for i in range(max_goals + 1) for j in range(max_goals + 1)]
+score_probs = [scores_matrix[i, j] for i in range(max_goals + 1) for j in range(max_goals + 1)]
 
-    .cl_O {
-        color: #919;
-    }
+# Create a DataFrame for better visualization
+scores_df = pd.DataFrame({
+    "Score": score_labels,
+    "Probability": score_probs
+}).sort_values(by="Probability", ascending=False).reset_index(drop=True)
 
-    .ukr {
-        color: #0080ff;
-        color: #55F;
-        color: #0808ff;
-    }
+st.subheader("Top Score Probabilities")
+st.table(scores_df.head(10))
 
-    .rus {
-        color: #911;
-    }
+# Correct Score Odds
+st.subheader("Correct Score Odds")
+scores_df["Odds"] = (1 / scores_df["Probability"]) * (1 + margin / 100)
+st.table(scores_df.head(10)[["Score", "Odds"]])
 
-    .blr {
-        color: #191;
-        color: #919;
-    }
+# Over/Under Total Goals
+st.header("Over/Under Totals")
+total_goals = np.arange(0, 2 * max_goals + 1)
+over_under_probs = [np.sum(
+    [poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals) for i in range(k + 1) for j in range(k + 1)]
+) for k in total_goals]
 
-    .cl_PG1 {
-        color: #360;
-    }
+# Visualize cumulative probabilities for total goals
+st.line_chart(pd.DataFrame({
+    "Total Goals": total_goals,
+    "Cumulative Probability": over_under_probs
+}).set_index("Total Goals"), use_container_width=True)
 
-    .cl_PG2 {
-        color: #690;
-    }
-
-    .cl_PG3 {
-        color: #906;
-    }
-
-    .cl_PG4 {
-        color: #603;
-    }
-
-    .cl_n {
-        color: #2f4f4f;
-    }
-
-    .cl_t {
-        color: #384048;
-    }
-
-    .cl_h {
-        color: #2e5498;
-    }
-
-    .fs_s {
-        font-size: 0.6875rem;
-    }
-
-    .fs_b {
-        font-size: 0.75rem;
-    }
-
-    .fs_nm {
-        font-size: 0.75rem;
-    }
-
-    .fs_n {
-        font-size: 0.8125rem;
-    }
-
-    .fs_np {
-        font-size: 0.875rem;
-    }
-
-    .fs_c {
-        font-size: 0.875rem;
-    }
-
-    .fs_h {
-        font-size: 1rem;
-    }
-
-    .fw_n {
-        font-weight: 400;
-    }
-
-    .bc {
-        background: #FFF3CA;
-    }
-
-    .bc_LB {
-        background: LightBlue;
-    }
-
-    .tbr {
-        height: 20px;
-        padding: 0;
-    }
-
-    .NBN {
-        border-style: none;
-    }
-
-    .NB {
-        border-style: hidden;
-    }
-
-    .NB_LR,
-    .blr_h,
-    .bc,
-    .tbr {
-        border-left-style: hidden;
-        border-right-style: hidden;
-    }
-
-    .bl_h {
-        border-left-style: hidden;
-    }
-
-    .bor_0 {
-        border: 0;
-    }
-
-    .bor_1 {
-        border: 1px solid #fffff0;
-    }
-
-    .bor_2 {
-        border: 3px double #fffff0;
-    }
-
-    body {
-        margin: 0;
-        padding: 0;
-        min-height: 1080px;
-        line-height: 1.2;
-        color: #384048;
-        background: #e6d0ac;
-        background: linear-gradient(to top, #987654, #e6d0ac);
-        text-align: center;
-        font-size: 0.75rem;
-        font-weight: 400;
-    }
-
-    a[rel~=nofollow] {
-        background: inherit !important;
-        font-size: inherit !important;
-    }
-
-    .ff_n,
-    body,
-    .Name,
-    .SN,
-    .TRN,
-    .EN,
-    .TN,
-    Caption.Line,
-    th.Line,
-    .btn,
-    Table.Odds Caption {
-        font-family: "Segoe UI", "Helvetica Neue", "Trebuchet MS", "Microsoft Sans Serif", "PT Sans", Roboto, sans-serif;
-    }
-
-    .ff_m,
-    em,
-    Table,
-    .Mono,
-    .Sel,
-    .Notes,
-    .Dbg,
-    input {
-        font-family: Consolas, Monaco, Menlo, "Lucida Console", "Courier New X", "PT Mono", "Roboto Mono", monospace, serif;
-    }
-
-    div {
-        border: 1px solid #acc1e6;
-    }
-    """
-    st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+# Summary
+st.header("Summary")
+st.write("This app provides dynamic calculations for match probabilities, correct score odds, and over/under totals based on team attack and defense strengths. Adjust the inputs and explore the results!")
