@@ -9,7 +9,7 @@ team1_attack = st.sidebar.number_input("Team 1 Attack Strength (Home Avg)", min_
 team1_defense = st.sidebar.number_input("Team 1 Defense Strength (Home Avg)", min_value=0.0, value=1.0, step=0.1)
 team2_attack = st.sidebar.number_input("Team 2 Attack Strength (Away Avg)", min_value=0.0, value=1.2, step=0.1)
 team2_defense = st.sidebar.number_input("Team 2 Defense Strength (Away Avg)", min_value=0.0, value=1.1, step=0.1)
-margin = st.sidebar.slider("Margin % (Odds Adjustment)", 0, 100, 10)
+margin = st.sidebar.slider("Margin % (Odds Adjustment)", 0, 100, 10)  # Margin adjustment as input
 
 # Calculate team goal expectations
 team1_goals = (team1_attack + team2_defense) / 2
@@ -47,7 +47,7 @@ st.table(scores_df.head(10))
 
 # Correct Score Odds
 st.subheader("Correct Score Odds")
-scores_df["Odds"] = (1 / scores_df["Probability"]) * (1 + margin / 100)
+scores_df["Odds"] = (1 / scores_df["Probability"]) * (1 + margin / 100)  # Adjust odds based on margin
 st.table(scores_df.head(10)[["Score", "Odds"]])
 
 # Over/Under Total Goals
