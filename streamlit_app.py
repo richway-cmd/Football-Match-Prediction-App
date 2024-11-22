@@ -1,85 +1,68 @@
 import streamlit as st
+import numpy as np
+import pandas as pd
 from scipy.stats import poisson
 
-# Title of the App
-st.title("Football Match Outcome Predictor")
+# Sidebar inputs
+st.sidebar.header("Input Parameters")
+team1_attack = st.sidebar.number_input("Team 1 Attack Strength (Home Avg)", min_value=0.0, value=1.5, step=0.1)
+team1_defense = st.sidebar.number_input("Team 1 Defense Strength (Home Avg)", min_value=0.0, value=1.0, step=0.1)
+team2_attack = st.sidebar.number_input("Team 2 Attack Strength (Away Avg)", min_value=0.0, value=1.2, step=0.1)
+team2_defense = st.sidebar.number_input("Team 2 Defense Strength (Away Avg)", min_value=0.0, value=1.1, step=0.1)
+margin = st.sidebar.slider("Margin % (Odds Adjustment)", 0, 100, 10)  # Margin adjustment as input
 
-# Sidebar Input
-st.sidebar.header("Input Team Data")
+# Calculate team goal expectations
+team1_goals = (team1_attack + team2_defense) / 2
+team2_goals = (team2_attack + team1_defense) / 2
 
-st.sidebar.subheader("Home Team")
-avg_home_goals_scored = st.sidebar.number_input("Average Goals Scored (Home)", min_value=0.0, value=1.5, step=0.1)
-avg_home_goals_conceded = st.sidebar.number_input("Average Goals Conceded (Home)", min_value=0.0, value=1.2, step=0.1)
-avg_home_points = st.sidebar.number_input("Average Points (Home)", min_value=0.0, value=1.8, step=0.1)
+# Header
+st.title("Football Match Odds & Probabilities Calculator")
+st.subheader("Match Parameters and Goal Expectations")
+st.write(f"Team 1 Expected Goals: **{team1_goals:.2f}**")
+st.write(f"Team 2 Expected Goals: **{team2_goals:.2f}**")
 
-st.sidebar.subheader("Away Team")
-avg_away_goals_scored = st.sidebar.number_input("Average Goals Scored (Away)", min_value=0.0, value=1.2, step=0.1)
-avg_away_goals_conceded = st.sidebar.number_input("Average Goals Conceded (Away)", min_value=0.0, value=1.3, step=0.1)
-avg_away_points = st.sidebar.number_input("Average Points (Away)", min_value=0.0, value=1.4, step=0.1)
+# Correct Score Probabilities
+st.header("Correct Score Odds and Probabilities")
 
-st.sidebar.subheader("League Averages")
-league_avg_goals_scored = st.sidebar.number_input("League Average Goals Scored per Match", min_value=0.1, value=1.5, step=0.1)
-league_avg_goals_conceded = st.sidebar.number_input("League Average Goals Conceded per Match", min_value=0.1, value=1.5, step=0.1)
+max_goals = st.number_input("Max Goals to Display", min_value=1, value=5, step=1)
+scores_matrix = np.zeros((max_goals + 1, max_goals + 1))
 
-# Calculate Attack and Defense Strengths
-home_attack_strength = avg_home_goals_scored / league_avg_goals_scored
-home_defense_strength = avg_home_goals_conceded / league_avg_goals_conceded
+# Populate scores matrix with probabilities
+for i in range(max_goals + 1):
+    for j in range(max_goals + 1):
+        scores_matrix[i, j] = poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals)
 
-away_attack_strength = avg_away_goals_scored / league_avg_goals_scored
-away_defense_strength = avg_away_goals_conceded / league_avg_goals_conceded
+# Display probabilities as a table
+score_labels = [f"{i}:{j}" for i in range(max_goals + 1) for j in range(max_goals + 1)]
+score_probs = [scores_matrix[i, j] for i in range(max_goals + 1) for j in range(max_goals + 1)]
 
-# Calculate Expected Goals
-home_expected_goals = home_attack_strength * away_defense_strength * league_avg_goals_scored
-away_expected_goals = away_attack_strength * home_defense_strength * league_avg_goals_scored
+# Create a DataFrame for better visualization
+scores_df = pd.DataFrame({
+    "Score": score_labels,
+    "Probability": score_probs
+}).sort_values(by="Probability", ascending=False).reset_index(drop=True)
 
-# Display Calculated Strengths and Expected Goals
-st.subheader("Calculated Strengths")
-st.write(f"**Home Attack Strength:** {home_attack_strength:.2f}")
-st.write(f"**Home Defense Strength:** {home_defense_strength:.2f}")
-st.write(f"**Away Attack Strength:** {away_attack_strength:.2f}")
-st.write(f"**Away Defense Strength:** {away_defense_strength:.2f}")
+st.subheader("Top Score Probabilities")
+st.table(scores_df.head(10))
 
-st.subheader("Expected Goals")
-st.write(f"**Home Team Expected Goals:** {home_expected_goals:.2f}")
-st.write(f"**Away Team Expected Goals:** {away_expected_goals:.2f}")
+# Correct Score Odds
+st.subheader("Correct Score Odds")
+scores_df["Odds"] = (1 / scores_df["Probability"]) * (1 + margin / 100)  # Adjust odds based on margin
+st.table(scores_df.head(10)[["Score", "Odds"]])
 
-# Function to Calculate Score Probabilities
-def calculate_score_probabilities(home_goals, away_goals):
-    home_probs = poisson.pmf(home_goals, home_expected_goals)
-    away_probs = poisson.pmf(away_goals, away_expected_goals)
-    return home_probs * away_probs
+# Over/Under Total Goals
+st.header("Over/Under Totals")
+total_goals = np.arange(0, 2 * max_goals + 1)
+over_under_probs = [np.sum(
+    [poisson.pmf(i, team1_goals) * poisson.pmf(j, team2_goals) for i in range(k + 1) for j in range(k + 1)]
+) for k in total_goals]
 
-# Predict Probabilities for Scorelines
-st.subheader("Scoreline Probabilities")
-max_goals = st.slider("Max Goals to Display", min_value=3, max_value=10, value=5)
-probabilities = {}
+# Visualize cumulative probabilities for total goals
+st.line_chart(pd.DataFrame({
+    "Total Goals": total_goals,
+    "Cumulative Probability": over_under_probs
+}).set_index("Total Goals"), use_container_width=True)
 
-for home_goals in range(max_goals + 1):
-    for away_goals in range(max_goals + 1):
-        prob = calculate_score_probabilities(home_goals, away_goals)
-        probabilities[(home_goals, away_goals)] = prob
-
-# Display Probabilities as a Table
-st.write("Probabilities for Each Scoreline:")
-prob_table = {
-    "Home Goals": [],
-    "Away Goals": [],
-    "Probability (%)": [],
-}
-
-for (home_goals, away_goals), prob in probabilities.items():
-    prob_table["Home Goals"].append(home_goals)
-    prob_table["Away Goals"].append(away_goals)
-    prob_table["Probability (%)"].append(round(prob * 100, 2))
-
-st.dataframe(prob_table)
-
-# Recommend Most Likely Scoreline
-most_likely_scoreline = max(probabilities, key=probabilities.get)
-most_likely_prob = probabilities[most_likely_scoreline] * 100
-
-st.subheader("Most Likely Outcome")
-st.write(
-    f"The most likely scoreline is **{most_likely_scoreline[0]}-{most_likely_scoreline[1]}** "
-    f"with a probability of **{most_likely_prob:.2f}%**."
-)
+# Summary
+st.header("Summary")
+st.write("This app provides dynamic calculations for match probabilities, correct score odds, and over/under totals based on team attack and defense strengths. Adjust the inputs and explore the results!")
