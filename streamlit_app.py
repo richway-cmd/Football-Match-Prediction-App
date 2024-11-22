@@ -1,148 +1,203 @@
 import streamlit as st
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from math import factorial  # Correct import for factorial
-from scipy.stats import poisson
 
-# Streamlit Application Title
-st.title("🤖 Advanced Rabiotic Football Outcome Predictor")
-st.markdown("""
-Predict football match outcomes using advanced metrics like:
-- **Poisson Distribution**
-- **Machine Learning**
-- **Odds Analysis**
-- **Margin Calculations**
-""")
+def apply_custom_css():
+    css = """
+    @charset "UTF-8";
 
-# Sidebar for Input Parameters
-st.sidebar.header("Input Parameters")
-
-# Match and Odds Input
-home_team = st.sidebar.text_input("Home Team", "Team A")
-away_team = st.sidebar.text_input("Away Team", "Team B")
-goals_home_mean = st.sidebar.number_input("Expected Goals (Home)", min_value=0.1, value=1.2, step=0.1)
-goals_away_mean = st.sidebar.number_input("Expected Goals (Away)", min_value=0.1, value=1.1, step=0.1)
-
-# Odds Input
-home_win_odds = st.sidebar.number_input("Odds: Home Win", value=2.50, step=0.01)
-draw_odds = st.sidebar.number_input("Odds: Draw", value=3.20, step=0.01)
-away_win_odds = st.sidebar.number_input("Odds: Away Win", value=3.10, step=0.01)
-over_odds = st.sidebar.number_input("Over 1.5 Odds", value=2.40, step=0.01)
-under_odds = st.sidebar.number_input("Under 1.5 Odds", value=1.55, step=0.01)
-over_odds = st.sidebar.number_input("Over 2.5 Odds", value=2.40, step=0.01)
-under_odds = st.sidebar.number_input("Under 2.5 Odds", value=1.55, step=0.01)
-
-# Margin Targets
-st.sidebar.subheader("Margin Targets")
-margin_targets = {
-    "Match Results": st.sidebar.number_input("Match Results Margin", value=4.95, step=0.01),
-    "Asian Handicap": st.sidebar.number_input("Asian Handicap Margin", value=5.90, step=0.01),
-    "Over/Under": st.sidebar.number_input("Over/Under Margin", value=6.18, step=0.01),
-    "Exact Goals": st.sidebar.number_input("Exact Goals Margin", value=20.0, step=0.01),
-    "Correct Score": st.sidebar.number_input("Correct Score Margin", value=57.97, step=0.01),
-    "HT/FT": st.sidebar.number_input("HT/FT Margin", value=20.0, step=0.01),
-}
-
-# Select Points for Probabilities and Odds
-selected_points = st.sidebar.multiselect(
-    "Select Points for Probabilities and Odds",
-    options=["Home Win", "Draw", "Away Win", "Over 1.5", "Under 1.5", "Over 2.5", "Under 2.5", "Correct Score", "HT/FT", "BTTS", "Exact Goals"]
-)
-
-# Submit Button
-submit_button = st.sidebar.button("Submit Prediction")
-
-# Functions
-def calculate_margin_difference(odds, margin_target):
-    return round(margin_target - odds, 2)
-
-def poisson_prob(mean, goal):
-    return (np.exp(-mean) * mean**goal) / factorial(goal)  # Using `factorial` from `math`
-
-def calculate_probabilities(home_mean, away_mean, max_goals=5):
-    home_probs = [poisson_prob(home_mean, g) for g in range(max_goals + 1)]
-    away_probs = [poisson_prob(away_mean, g) for g in range(max_goals + 1)]
-    return [
-        (i, j, home_probs[i] * away_probs[j])
-        for i in range(max_goals + 1)
-        for j in range(max_goals + 1)
-    ]
-
-def odds_implied_probability(odds):
-    return 1 / odds
-
-def normalize_probs(home, draw, away):
-    total = home + draw + away
-    return home / total, draw / total, away / total
-
-# Run prediction when submit button is pressed
-if submit_button:
-    # Calculate Probabilities
-    match_probs = calculate_probabilities(goals_home_mean, goals_away_mean)
-    score_probs_df = pd.DataFrame(match_probs, columns=["Home Goals", "Away Goals", "Probability"])
-
-    # Display Probabilities
-    st.subheader("Match Outcome Probabilities")
-    home_prob = odds_implied_probability(home_win_odds)
-    draw_prob = odds_implied_probability(draw_odds)
-    away_prob = odds_implied_probability(away_win_odds)
-    normalized_home, normalized_draw, normalized_away = normalize_probs(home_prob, draw_prob, away_prob)
-
-    if "Home Win" in selected_points:
-        st.metric("Home Win (%)", f"{normalized_home * 100:.2f}")
-    if "Draw" in selected_points:
-        st.metric("Draw (%)", f"{normalized_draw * 100:.2f}")
-    if "Away Win" in selected_points:
-        st.metric("Away Win (%)", f"{normalized_away * 100:.2f}")
-
-    # Correct Score Predictions
-    if "Correct Score" in selected_points:
-        st.subheader("Top Correct Score Predictions")
-        top_scores = score_probs_df.sort_values("Probability", ascending=False).head(5)
-        top_scores["Probability (%)"] = top_scores["Probability"] * 100
-        st.write(top_scores)
-
-        # Visualization: Correct Score Probabilities
-        fig, ax = plt.subplots()
-        ax.bar(
-            top_scores.apply(lambda row: f"{int(row['Home Goals'])}-{int(row['Away Goals'])}", axis=1),
-            top_scores["Probability (%)"],
-            color="skyblue",
-        )
-        ax.set_title("Top Correct Scores")
-        ax.set_ylabel("Probability (%)")
-        st.pyplot(fig)
-
-    # Margin Differences
-    st.subheader("Margin Differences")
-    margin_differences = {
-        "Home Win": calculate_margin_difference(home_win_odds, margin_targets["Match Results"]),
-        "Draw": calculate_margin_difference(draw_odds, margin_targets["Match Results"]),
-        "Away Win": calculate_margin_difference(away_win_odds, margin_targets["Match Results"]),
-        "Over 1.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
-        "Under 1.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
-        "Over 2.5": calculate_margin_difference(over_odds, margin_targets["Over/Under"]),
-        "Under 2.5": calculate_margin_difference(under_odds, margin_targets["Over/Under"]),
+    .Mob_V {
+        visibility: hidden;
     }
-    margin_df = pd.DataFrame.from_dict(margin_differences, orient='index', columns=['Margin Difference'])
-    st.write(margin_df)
 
-    # Advanced Visualization: Poisson Heatmap
-    st.subheader("Poisson Probability Heatmap")
-    prob_matrix = np.zeros((5 + 1, 5 + 1))
-    for i in range(5 + 1):
-        for j in range(5 + 1):
-            prob_matrix[i, j] = poisson.pmf(i, goals_home_mean) * poisson.pmf(j, goals_away_mean)
-    prob_matrix /= prob_matrix.sum()
+    .cl_1 {
+        color: #acc1e6;
+    }
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    cax = ax.matshow(prob_matrix, cmap="coolwarm")
-    fig.colorbar(cax)
-    ax.set_xticks(range(5 + 1))
-    ax.set_yticks(range(5 + 1))
-    ax.set_xticklabels(range(5 + 1))
-    ax.set_yticklabels(range(5 + 1))
-    ax.set_xlabel("Away Goals")
-    ax.set_ylabel("Home Goals")
-    st.pyplot(fig)
+    .cl_w {
+        color: green;
+    }
+
+    .cl_d {
+        color: blue;
+    }
+
+    .cl_l {
+        color: red;
+    }
+
+    .cl_g {
+        color: silver;
+        color: #9ba6b1;
+    }
+
+    .cl_O {
+        color: #919;
+    }
+
+    .ukr {
+        color: #0080ff;
+        color: #55F;
+        color: #0808ff;
+    }
+
+    .rus {
+        color: #911;
+    }
+
+    .blr {
+        color: #191;
+        color: #919;
+    }
+
+    .cl_PG1 {
+        color: #360;
+    }
+
+    .cl_PG2 {
+        color: #690;
+    }
+
+    .cl_PG3 {
+        color: #906;
+    }
+
+    .cl_PG4 {
+        color: #603;
+    }
+
+    .cl_n {
+        color: #2f4f4f;
+    }
+
+    .cl_t {
+        color: #384048;
+    }
+
+    .cl_h {
+        color: #2e5498;
+    }
+
+    .fs_s {
+        font-size: 0.6875rem;
+    }
+
+    .fs_b {
+        font-size: 0.75rem;
+    }
+
+    .fs_nm {
+        font-size: 0.75rem;
+    }
+
+    .fs_n {
+        font-size: 0.8125rem;
+    }
+
+    .fs_np {
+        font-size: 0.875rem;
+    }
+
+    .fs_c {
+        font-size: 0.875rem;
+    }
+
+    .fs_h {
+        font-size: 1rem;
+    }
+
+    .fw_n {
+        font-weight: 400;
+    }
+
+    .bc {
+        background: #FFF3CA;
+    }
+
+    .bc_LB {
+        background: LightBlue;
+    }
+
+    .tbr {
+        height: 20px;
+        padding: 0;
+    }
+
+    .NBN {
+        border-style: none;
+    }
+
+    .NB {
+        border-style: hidden;
+    }
+
+    .NB_LR,
+    .blr_h,
+    .bc,
+    .tbr {
+        border-left-style: hidden;
+        border-right-style: hidden;
+    }
+
+    .bl_h {
+        border-left-style: hidden;
+    }
+
+    .bor_0 {
+        border: 0;
+    }
+
+    .bor_1 {
+        border: 1px solid #fffff0;
+    }
+
+    .bor_2 {
+        border: 3px double #fffff0;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 1080px;
+        line-height: 1.2;
+        color: #384048;
+        background: #e6d0ac;
+        background: linear-gradient(to top, #987654, #e6d0ac);
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 400;
+    }
+
+    a[rel~=nofollow] {
+        background: inherit !important;
+        font-size: inherit !important;
+    }
+
+    .ff_n,
+    body,
+    .Name,
+    .SN,
+    .TRN,
+    .EN,
+    .TN,
+    Caption.Line,
+    th.Line,
+    .btn,
+    Table.Odds Caption {
+        font-family: "Segoe UI", "Helvetica Neue", "Trebuchet MS", "Microsoft Sans Serif", "PT Sans", Roboto, sans-serif;
+    }
+
+    .ff_m,
+    em,
+    Table,
+    .Mono,
+    .Sel,
+    .Notes,
+    .Dbg,
+    input {
+        font-family: Consolas, Monaco, Menlo, "Lucida Console", "Courier New X", "PT Mono", "Roboto Mono", monospace, serif;
+    }
+
+    div {
+        border: 1px solid #acc1e6;
+    }
+    """
+    st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
